@@ -1,0 +1,16 @@
+name: Hard-coded ID Guard
+on:
+  pull_request:
+    paths:
+      - 'tests/**/*.cs'
+
+jobs:
+  id-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ban hard-coded GUIDs/IDs in tests
+        run: |
+          if rg -n --pcre2 '(?<!/)\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b' tests; then
+            echo "::error::Hard-coded GUID detected in tests (use discovery helpers)"; exit 1;
+          fi

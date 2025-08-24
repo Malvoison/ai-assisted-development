@@ -1,0 +1,21 @@
+name: OpenAPI Drift Guard
+on:
+  pull_request:
+    paths:
+      - '**/openapi*.json'
+      - '**/openapi*.yaml'
+      - 'tests/**/*.cs'
+
+jobs:
+  drift-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if OpenAPI changed without tests
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'openapi.*\.(json|ya?ml)'; then
+            if ! git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'tests/**/*.cs' | grep -q .; then
+              echo "::error::OpenAPI changed but no tests modified"; exit 1
+            fi
+          fi

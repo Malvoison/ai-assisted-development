@@ -1,0 +1,14 @@
+name: PR Size Labels
+on:
+  pull_request:
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codelytv/pr-size-labeler@v1
+        with:
+          xs_max_size: '50'
+          s_max_size: '200'
+          m_max_size: '500'
+          l_max_size: '1200'

@@ -1,0 +1,38 @@
+name: Provenance Header Check
+on:
+  pull_request:
+    paths:
+      - 'tests/**/*.cs'
+
+jobs:
+  check-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed test files
+        id: changed
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'tests/**/*.cs')
+          echo "files=$files" >> $GITHUB_OUTPUT
+
+      - name: Check provenance headers
+        run: |
+          failed=0
+          for f in ${{ steps.changed.outputs.files }}; do
+            echo "Checking $f..."
+            if ! grep -q "AI-Assisted:" "$f"; then
+              echo "::error file=$f::Missing AI-Assisted provenance header"
+              failed=1
+            fi
+            if ! grep -q "Source Guidelines:" "$f"; then
+              echo "::error file=$f::Missing Source Guidelines tag"
+              failed=1
+            fi
+            # Uncomment to enforce strict mode (all six fields)
+            # for key in 'Template:' 'Target:' 'Generated:' 'Models:'; do
+            #   if ! grep -q "$key" "$f"; then echo "::error file=$f::Missing $key"; failed=1; fi
+            # done
+          done
+          exit $failed

@@ -1,0 +1,14 @@
+name: Large File Guard
+on:
+  pull_request:
+
+jobs:
+  large-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block large files (>5MB)
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          big=$(git diff --name-only --diff-filter=AM origin/${{ github.base_ref }}...HEAD | xargs -I{} bash -lc 'test -f "{}" && [ $(stat -c%s "{}") -gt 5242880 ] && echo "{}"')
+          if [ -n "$big" ]; then echo "::error::Large file(s) detected:\n$big"; exit 1; fi

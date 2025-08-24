@@ -1,0 +1,22 @@
+name: Style & Analyzers
+on:
+  pull_request:
+    paths:
+      - '**/*.sln'
+      - '**/*.cs'
+      - '**/*.editorconfig'
+
+jobs:
+  style-analyzers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore tools
+        run: dotnet tool restore || true
+      - name: Verify format
+        run: dotnet format --verify-no-changes
+      - name: Build with analyzers
+        run: dotnet build -warnaserror

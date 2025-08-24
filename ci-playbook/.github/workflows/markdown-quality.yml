@@ -1,0 +1,19 @@
+name: Docs Quality
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Spellcheck
+        uses: rojopolis/spellcheck-github-actions@0.36.0
+        with:
+          config_path: .github/spellcheck.yml
+      - name: Link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --quiet **/*.md

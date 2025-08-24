@@ -1,0 +1,29 @@
+name: Coverage Report
+on:
+  pull_request:
+    paths:
+      - '**/*.cs'
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test & collect coverage (Coverlet)
+        run: |
+          dotnet test /p:CollectCoverage=true /p:CoverletOutput=./coverage/ /p:CoverletOutputFormat=cobertura || true
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+      - name: Post summary (basic)
+        run: |
+          echo "### Coverage" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/coverage.cobertura.xml ]; then
+            echo "Cobertura file generated." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Coverage file not found. Ensure Coverlet is configured." >> $GITHUB_STEP_SUMMARY

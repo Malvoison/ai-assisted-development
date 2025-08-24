@@ -1,0 +1,14 @@
+name: Coverage Checklist Present
+on:
+  pull_request:
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure coverage checklist present in PR body
+        uses: actions-ecosystem/action-regex-match@v2
+        with:
+          text: ${{ github.event.pull_request.body }}
+          # Looks for at least the "Happy path tests" item
+          regex: "- \[ \] Happy path tests"
