@@ -1,0 +1,64 @@
+name: Blast Radius (PoC)
+on:
+  pull_request:
+
+jobs:
+  blast-radius:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Determine changed C# and VB6 files
+        id: changed
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.cs' '*.vb' '*.bas' '*.cls' '*.frm' > changed_files.txt
+awk '/\.(cs|vb)$/' changed_files.txt > changed_cs.txt
+awk '/\.(bas|cls|frm)$/' changed_files.txt > changed_vb6.txt
+          echo "changed=$(cat changed_cs.txt | wc -l)" >> $GITHUB_OUTPUT
+          echo "Solution search (first .sln found)"
+          sln=$(ls -1 **/*.sln | head -n1 || true)
+          echo "$sln" > solution_path.txt
+          cat solution_path.txt
+
+      - name: Build BlastRadius.DotNet
+        run: dotnet build tools/BlastRadius.DotNet/BlastRadius.DotNet.csproj --nologo
+
+      - name: Extract public symbols from changed C# files
+        run: |
+          if [ ! -s changed_cs.txt ]; then
+            echo "No changed C# files"; echo "" > symbols.jsonl
+          else
+            sol=$(cat solution_path.txt)
+            dotnet run --project tools/BlastRadius.DotNet/BlastRadius.DotNet.csproj "$sol" changed_cs.txt > symbols.jsonl || echo "" > symbols.jsonl
+          fi
+
+      - name: Install ripgrep & ctags
+        run: sudo apt-get update && sudo apt-get install -y ripgrep universal-ctags
+
+      - name: VB6 extractor
+      - name: Extract VB6 symbols from changed files
+        run: |
+          if [ -s changed_vb6.txt ]; then
+            python3 tools/BlastRadius.VB6/vb6_extract.py changed_vb6.txt -o vb6_symbols.jsonl || echo "" > vb6_symbols.jsonl
+          else
+            echo "" > vb6_symbols.jsonl
+          fi
+
+      - name: Merge symbols
+        run: |
+          cat symbols.jsonl vb6_symbols.jsonl > all_symbols.jsonl || true
+Generate blast radius report
+        run: |
+          python3 tools/BlastRadius.Report/report.py all_symbols.jsonl . blast_radius.md
+          echo "Generated blast_radius.md"
+          cat blast_radius.md || true
+
+      - name: Sticky PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: blast_radius.md
